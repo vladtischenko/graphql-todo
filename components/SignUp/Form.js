@@ -14,9 +14,9 @@ const CREATE_POST_MUTATION = gql`
 `
 
 const SignUpForm = ({ router }) => {
-  const [createPost, { loading }] = useMutation(CREATE_POST_MUTATION)
+  const [createUser, { loading }] = useMutation(CREATE_POST_MUTATION)
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
     const form = event.target
     const formData = new window.FormData(form)
@@ -25,16 +25,20 @@ const SignUpForm = ({ router }) => {
     const passwordConfirmation = formData.get('pswd-confirm')
     form.reset()
 
-    createPost({
-      variables: { email, password, passwordConfirmation },
-      update: (proxy, { data: { userCreate: { user, errors } } }) => {
-        if (user) {
-          router.push('/login')
-        } else {
-          console.log('handle errors')
-        }
-      }
-    })
+    try {
+      const {
+        data: {
+          userCreate: {
+            user,
+          },
+        },
+      } = await createUser({ variables: { email, password, passwordConfirmation } });
+      router.push('/login')
+    } catch (error) {
+      console.log(
+        error.message.replace('GraphQL error:', '').trim()
+      )
+    }
   }
 
   return (

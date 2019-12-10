@@ -1,8 +1,10 @@
+import React, { useState, useEffect } from "react";
+
 import { useMutation } from '@apollo/react-hooks'
 import gql from 'graphql-tag'
 import { withRouter } from 'next/router'
 
-const CREATE_POST_MUTATION = gql`
+const CREATE_SESSION_MUTATION = gql`
   mutation sessionCreate($email: String!, $password: String!) {
     sessionCreate(input: { email: $email, password: $password }) {
       token
@@ -15,9 +17,9 @@ const CREATE_POST_MUTATION = gql`
 `
 
 const LoginForm = ({ router }) => {
-  const [createPost, { loading }] = useMutation(CREATE_POST_MUTATION)
+  const [createSession, { loading, error, data }] = useMutation(CREATE_SESSION_MUTATION)
 
-  const handleSubmit = event => {
+  const handleSubmit = async event => {
     event.preventDefault()
     const form = event.target
     const formData = new window.FormData(form)
@@ -25,16 +27,23 @@ const LoginForm = ({ router }) => {
     const password = formData.get('pswd')
     form.reset()
 
-    createPost({
-      variables: { email, password },
-      update: (proxy, { data: { sessionCreate: { user, token, errors } } }) => {
-        if (user) {
-          router.push('/projects')
-        } else {
-          console.log('handle errors')
-        }
-      }
-    })
+    try {
+      const {
+        data: {
+          sessionCreate: {
+            token,
+            user,
+          },
+        },
+      } = await createSession({ variables: { email, password } });
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+      router.push('/projects')
+    } catch (error) {
+      console.log(
+        error.message.replace('GraphQL error:', '').trim()
+      )
+    }
   }
 
   return (
